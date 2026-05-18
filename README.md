@@ -1,73 +1,91 @@
-# React + TypeScript + Vite
+# Sprint Board
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A Jira-style sprint board built with React, TypeScript, Firebase Authentication, Firestore, and Google Calendar API.
 
-Currently, two official plugins are available:
+## Features
+- **Task Management**: Create, edit, and delete tasks.
+- **Kanban Board**: Drag and drop tasks between To Do, In Progress, and Done columns.
+- **Google Calendar Sync**: Optionally sync new tasks directly to your primary Google Calendar.
+- **Dashboard Summary**: Quick overview of task counts and overdue items.
+- **Dark Mode**: Fully supported light/dark theme toggle.
+- **Search**: Filter tasks by title or assignee.
+- **Secure**: User tasks are isolated using Firebase Authentication and Firestore Security Rules.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Tech Stack
+- Frontend: React 19, TypeScript, Vite
+- Styling: Tailwind CSS v4
+- Backend/Database: Firebase (Authentication, Firestore)
+- API: Google Calendar API (via Firebase Auth Provider)
 
-## React Compiler
+## Screenshots
+*(Add your screenshots here)*
+- Dashboard View
+- Create Task Modal
+- Dark Mode View
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Getting Started
 
-## Expanding the ESLint configuration
+### Prerequisites
+- Node.js (v18 or higher recommended)
+- A Firebase Project (with Authentication and Firestore enabled)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Installation
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/sprint-board.git
+   cd sprint-board
+   ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+3. Set up environment variables:
+   Copy the example environment file and fill in your Firebase config:
+   ```bash
+   cp .env.example .env
+   ```
+   
+   *Required Environment Variables:*
+   - `VITE_FIREBASE_API_KEY`
+   - `VITE_FIREBASE_AUTH_DOMAIN`
+   - `VITE_FIREBASE_PROJECT_ID`
+   - `VITE_FIREBASE_STORAGE_BUCKET`
+   - `VITE_FIREBASE_MESSAGING_SENDER_ID`
+   - `VITE_FIREBASE_APP_ID`
+
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
+   The app will be available at `http://localhost:5173`.
+
+### Firebase Setup Notes
+1. **Authentication**: Enable Google Sign-In in your Firebase Console under Authentication > Sign-in method.
+2. **Google Calendar API**: To enable Calendar sync, ensure the "Google Calendar API" is enabled in the Google Cloud Console for the project associated with your Firebase app.
+3. **Firestore**: Create a Firestore database.
+
+### Firestore Security Rules
+To secure the database so users can only access their own tasks, deploy or paste the following rules in your Firebase Console -> Firestore -> Rules:
+
+```javascript
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/tasks/{taskId} {
+      allow read, create, update, delete: if request.auth != null
+        && request.auth.uid == userId;
+    }
+  }
+}
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Future Improvements
+- [ ] Support for multiple boards/projects
+- [ ] Bidirectional Google Calendar sync (update/delete events)
+- [ ] Team collaboration and role management
+- [ ] Task comments and attachments
+- [ ] GitHub Issues integration
