@@ -1,26 +1,11 @@
-import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { googleProvider } from "../firebase/firebaseConfig";
-
 export const createGoogleCalendarEvent = async (
+  accessToken: string,
   title: string,
   description: string,
   startDateTime: string,
   endDateTime: string
 ): Promise<{ id: string; htmlLink: string }> => {
-  const auth = getAuth();
-  if (!auth.currentUser) {
-    throw new Error("User must be logged in to sync to calendar.");
-  }
-
   try {
-    // Re-authenticate to ensure we have a fresh Google access token with calendar scope
-    const result = await signInWithPopup(auth, googleProvider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    const accessToken = credential?.accessToken;
-
-    if (!accessToken) {
-      throw new Error("Could not retrieve Google access token.");
-    }
 
     const event = {
       summary: title,
@@ -43,6 +28,10 @@ export const createGoogleCalendarEvent = async (
       },
       body: JSON.stringify(event),
     });
+
+    if (response.status === 401) {
+      throw new Error("Calendar permission expired. Please reconnect Google Calendar.");
+    }
 
     if (!response.ok) {
       const errorData = await response.json();

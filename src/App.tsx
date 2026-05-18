@@ -13,8 +13,9 @@ import {
   onAuthStateChanged,
   signInWithPopup,
   signOut,
-  type User,
+  GoogleAuthProvider,
 } from "firebase/auth";
+import type { User } from "firebase/auth";
 import { auth, db, googleProvider } from "./firebase/firebaseConfig";
 import type { Task, TaskFormData, TaskStatus } from "./types/task";
 import { LayoutIcon, SearchIcon, PlusIcon, AlertCircleIcon, XIcon } from "./components/Icons";
@@ -27,6 +28,7 @@ import { createGoogleCalendarEvent } from "./services/googleCalendar";
 const App = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
   
   // Loading states
   const [authLoading, setAuthLoading] = useState(true);
@@ -85,10 +87,27 @@ const App = () => {
 
   const handleLogin = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (credential?.accessToken) {
+        setGoogleAccessToken(credential.accessToken);
+      }
     } catch (error: any) {
       console.error("Login failed:", error);
       alert(`Login failed: ${error.message}`);
+    }
+  };
+
+  const handleReconnectCalendar = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (credential?.accessToken) {
+        setGoogleAccessToken(credential.accessToken);
+        setCalendarError(null);
+      }
+    } catch (error: any) {
+      console.error("Reconnect failed:", error);
     }
   };
 
@@ -159,21 +178,26 @@ const App = () => {
         });
 
         if (taskData.syncToCalendar) {
-          try {
-            const { id, htmlLink } = await createGoogleCalendarEvent(
-              taskData.title,
-              taskData.description || "",
-              taskData.startDateTime || "",
-              taskData.endDateTime || ""
-            );
+          if (!googleAccessToken) {
+            setCalendarError("Calendar permission missing. Please click 'Reconnect Calendar' at the top.");
+          } else {
+            try {
+              const { id, htmlLink } = await createGoogleCalendarEvent(
+                googleAccessToken,
+                taskData.title,
+                taskData.description || "",
+                taskData.startDateTime || "",
+                taskData.endDateTime || ""
+              );
 
-            await updateDoc(newDocRef, {
-              googleCalendarEventId: id,
-              googleCalendarHtmlLink: htmlLink,
-              updatedAt: serverTimestamp(),
-            });
-          } catch (calError: any) {
-            setCalendarError(calError.message || "Failed to sync with Google Calendar.");
+              await updateDoc(newDocRef, {
+                googleCalendarEventId: id,
+                googleCalendarHtmlLink: htmlLink,
+                updatedAt: serverTimestamp(),
+              });
+            } catch (calError: any) {
+              setCalendarError(calError.message || "Failed to sync with Google Calendar.");
+            }
           }
         }
       }
@@ -283,6 +307,15 @@ const App = () => {
               className="pl-9 pr-4 py-1.5 bg-slate-100 dark:bg-slate-900 border-transparent dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 border focus:border-blue-500 dark:focus:border-blue-500 rounded-md text-sm transition-all outline-none w-64 dark:text-slate-100"
             />
           </div>
+
+          {!googleAccessToken && user && (
+            <button
+              onClick={handleReconnectCalendar}
+              className="bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-400 text-sm font-medium px-4 py-2 rounded-md flex items-center gap-2 transition-colors shadow-sm border border-orange-200 dark:border-orange-800"
+            >
+              Reconnect Calendar
+            </button>
+          )}
 
           <button
             onClick={openCreateModal}
